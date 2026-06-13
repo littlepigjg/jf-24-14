@@ -158,14 +158,14 @@ function extractScanCountCondition(
 ): { min?: number; max?: number; matched: string } | null {
   const patterns: { regex: RegExp; extract: (m: RegExpMatchArray) => { min?: number; max?: number } }[] = [
     {
-      regex: /扫码[数次数]*[超过大于]([零一二两三四五六七八九十百千万\d]+)(?:次|个)?/,
+      regex: /扫码[数次数]*(?:超过|大于等于|大于|超过|>|＞)([零一二两三四五六七八九十百千万\d]+)(?:次|个)?/,
       extract: (m) => {
         const n = parseNumberFromChinese(m[1])
         return n !== null ? { min: n + 1 } : {}
       },
     },
     {
-      regex: /扫码[数次数]*[不超]?[少小于]([零一二两三四五六七八九十百千万\d]+)(?:次|个)?/,
+      regex: /扫码[数次数]*(?:少于|小于等于|小于|不超过|不超过|<|＜)([零一二两三四五六七八九十百千万\d]+)(?:次|个)?/,
       extract: (m) => {
         const n = parseNumberFromChinese(m[1])
         return n !== null ? { max: n - 1 } : {}
@@ -187,14 +187,14 @@ function extractScanCountCondition(
       },
     },
     {
-      regex: /扫码[数次数]*[在达]([零一二两三四五六七八九十百千万\d]+)以上/,
+      regex: /扫码[数次数]*(?:达到|在|达)?([零一二两三四五六七八九十百千万\d]+)以上/,
       extract: (m) => {
         const n = parseNumberFromChinese(m[1])
         return n !== null ? { min: n } : {}
       },
     },
     {
-      regex: /扫码[数次数]*[在达]([零一二两三四五六七八九十百千万\d]+)以下/,
+      regex: /扫码[数次数]*(?:达到|在|达)?([零一二两三四五六七八九十百千万\d]+)以下/,
       extract: (m) => {
         const n = parseNumberFromChinese(m[1])
         return n !== null ? { max: n } : {}

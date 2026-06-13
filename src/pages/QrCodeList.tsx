@@ -55,9 +55,12 @@ export default function QrCodeList() {
   const [confirmedQuery, setConfirmedQuery] = useState<NlpStructuredQuery>({});
   const [previewParse, setPreviewParse] = useState<NlpParseResult | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
   const smartInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const parseRequestIdRef = useRef(0);
+  const smartInputValueRef = useRef("");
 
   const isSmartMode = !isQueryEmpty(confirmedQuery);
   const confirmedConditions = structuredQueryToConditions(confirmedQuery);
@@ -105,38 +108,69 @@ export default function QrCodeList() {
 
   const handleSmartInputChange = (value: string) => {
     setSmartInput(value);
+    smartInputValueRef.current = value;
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    setPreviewParse(null);
     if (!value.trim()) {
-      setPreviewParse(null);
       return;
     }
     debounceRef.current = setTimeout(() => {
+      const requestId = ++parseRequestIdRef.current;
       api
         .parseNlpQuery(value)
-        .then(setPreviewParse)
+        .then((result) => {
+          if (requestId === parseRequestIdRef.current) {
+            setPreviewParse(result);
+          }
+        })
         .catch(() => {});
     }, 300);
   };
 
-  const handleAddCondition = () => {
-    if (!smartInput.trim()) return;
-    if (!previewParse || previewParse.recognized.length === 0) return;
+  const handleAddCondition = async () => {
+    const trimmed = smartInputValueRef.current.trim();
+    if (!trimmed) return;
 
-    const merged = mergeQueries(confirmedQuery, previewParse.query);
-    setConfirmedQuery(merged);
-    setSmartInput("");
-    setPreviewParse(null);
-    setPage(1);
-    setShowSuggestions(false);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = undefined;
+    }
+
+    setIsParsing(true);
+    try {
+      const requestId = ++parseRequestIdRef.current;
+      const parseResult = await api.parseNlpQuery(trimmed);
+
+      if (requestId !== parseRequestIdRef.current) return;
+
+      if (parseResult.recognized.length === 0) {
+        setPreviewParse(parseResult);
+        return;
+      }
+
+      setConfirmedQuery((prev) => {
+        const merged = mergeQueries(prev, parseResult.query);
+        return merged;
+      });
+      setSmartInput("");
+      smartInputValueRef.current = "";
+      setPreviewParse(null);
+      setPage(1);
+      setShowSuggestions(false);
+    } catch {
+      // ignore
+    } finally {
+      setIsParsing(false);
+    }
   };
 
   const handleSuggestionClick = async (text: string) => {
     setShowSuggestions(false);
     try {
       const parseResult = await api.parseNlpQuery(text);
-      const merged = mergeQueries(confirmedQuery, parseResult.query);
-      setConfirmedQuery(merged);
+      setConfirmedQuery((prev) => mergeQueries(prev, parseResult.query));
       setSmartInput("");
+      smartInputValueRef.current = "";
       setPreviewParse(null);
       setPage(1);
     } catch {
@@ -153,6 +187,7 @@ export default function QrCodeList() {
   const clearAllConditions = () => {
     setConfirmedQuery({});
     setSmartInput("");
+    smartInputValueRef.current = "";
     setPreviewParse(null);
     setShowSuggestions(false);
     setPage(1);
@@ -238,6 +273,7 @@ export default function QrCodeList() {
               }
             }}
             placeholder="输入条件后回车添加，可多次叠加。如：上周创建的、扫码数超过100..."
+            isLoading={isParsing}
           />
 
           {showSuggestions && !smartInput && confirmedConditions.length === 0 && (
