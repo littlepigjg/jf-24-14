@@ -33,7 +33,27 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     const page = parseInt(req.query.page as string, 10) || 1
     const pageSize = parseInt(req.query.pageSize as string, 10) || 20
     const keyword = req.query.keyword as string | undefined
-    const result = await QrService.list(page, pageSize, keyword)
+    const type = req.query.type as 'static' | 'dynamic' | undefined
+    const enabled = req.query.enabled !== undefined ? req.query.enabled === 'true' : undefined
+    const scanCountMin = req.query.scanCountMin !== undefined ? parseInt(req.query.scanCountMin as string, 10) : undefined
+    const scanCountMax = req.query.scanCountMax !== undefined ? parseInt(req.query.scanCountMax as string, 10) : undefined
+    const dateFrom = req.query.dateFrom as string | undefined
+    const dateTo = req.query.dateTo as string | undefined
+    const sortBy = req.query.sortBy as 'createdAt' | 'scanCount' | 'name' | undefined
+    const sortOrder = req.query.sortOrder as 'asc' | 'desc' | undefined
+
+    const query = {
+      keyword,
+      type,
+      enabled,
+      scanCountMin,
+      scanCountMax,
+      dateFrom,
+      dateTo,
+      sortBy,
+      sortOrder,
+    }
+    const result = await QrService.advancedList(query, page, pageSize)
     res.json({ success: true, data: result })
   } catch (err) {
     res.status(500).json({ success: false, error: (err as Error).message })

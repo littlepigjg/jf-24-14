@@ -51,9 +51,13 @@ export const api = {
     page?: number;
     pageSize?: number;
     keyword?: string;
-    type?: string;
+    type?: "static" | "dynamic";
     enabled?: boolean;
-    sortBy?: string;
+    scanCountMin?: number;
+    scanCountMax?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    sortBy?: "createdAt" | "scanCount" | "name";
     sortOrder?: "asc" | "desc";
   }): Promise<PagedResult<QrCode>> {
     const q = new URLSearchParams();
@@ -62,6 +66,10 @@ export const api = {
     if (params?.keyword) q.set("keyword", params.keyword);
     if (params?.type) q.set("type", params.type);
     if (params?.enabled !== undefined) q.set("enabled", String(params.enabled));
+    if (params?.scanCountMin !== undefined) q.set("scanCountMin", String(params.scanCountMin));
+    if (params?.scanCountMax !== undefined) q.set("scanCountMax", String(params.scanCountMax));
+    if (params?.dateFrom) q.set("dateFrom", params.dateFrom);
+    if (params?.dateTo) q.set("dateTo", params.dateTo);
     if (params?.sortBy) q.set("sortBy", params.sortBy);
     if (params?.sortOrder) q.set("sortOrder", params.sortOrder);
     return request<PagedResult<QrCode>>(`/qrcodes${q.toString() ? `?${q.toString()}` : ""}`);
