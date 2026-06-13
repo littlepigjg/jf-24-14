@@ -9,6 +9,8 @@ import type {
   QrCodeStats,
   PagedResult,
   ApiResponse,
+  SmartSearchResult,
+  NlpParseResult,
 } from "@shared/types";
 
 const API_BASE = "/api";
@@ -29,6 +31,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   getOverviewStats(): Promise<OverviewStats> {
     return request<OverviewStats>("/stats/overview");
+  },
+
+  smartSearch(params: { q: string; page?: number; pageSize?: number }): Promise<SmartSearchResult> {
+    const query = new URLSearchParams();
+    query.set("q", params.q);
+    if (params.page) query.set("page", String(params.page));
+    if (params.pageSize) query.set("pageSize", String(params.pageSize));
+    return request<SmartSearchResult>(`/qrcodes/smart-search?${query.toString()}`);
+  },
+
+  parseNlpQuery(q: string): Promise<NlpParseResult> {
+    const query = new URLSearchParams();
+    query.set("q", q);
+    return request<NlpParseResult>(`/qrcodes/parse-query?${query.toString()}`);
   },
 
   listQrCodes(params?: {

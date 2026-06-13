@@ -1,8 +1,32 @@
 import { Router, type Request, type Response } from 'express'
 import { QrService } from '../services/QrService.js'
+import { parseNlpQuery } from '../services/NlpQueryParser.js'
 import type { CreateQrCodeRequest, UpdateQrCodeRequest } from '../../shared/types.js'
 
 const router = Router()
+
+router.get('/smart-search', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const q = req.query.q as string || ''
+    const page = parseInt(req.query.page as string, 10) || 1
+    const pageSize = parseInt(req.query.pageSize as string, 10) || 10
+    const parseResult = parseNlpQuery(q)
+    const result = await QrService.advancedList(parseResult.query, page, pageSize)
+    res.json({ success: true, data: { ...result, parseResult } })
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message })
+  }
+})
+
+router.get('/parse-query', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const q = req.query.q as string || ''
+    const parseResult = parseNlpQuery(q)
+    res.json({ success: true, data: parseResult })
+  } catch (err) {
+    res.status(500).json({ success: false, error: (err as Error).message })
+  }
+})
 
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {

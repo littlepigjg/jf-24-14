@@ -16,15 +16,36 @@ function generateShortCode(): string {
   return Math.random().toString(36).slice(2, 10)
 }
 
+export interface StructuredQuery {
+  keyword?: string
+  type?: 'static' | 'dynamic'
+  enabled?: boolean
+  scanCountMin?: number
+  scanCountMax?: number
+  dateFrom?: string
+  dateTo?: string
+  sortBy?: 'createdAt' | 'scanCount' | 'name'
+  sortOrder?: 'asc' | 'desc'
+}
+
 export const QrService = {
   async list(
     page: number = 1,
     pageSize: number = 20,
     keyword?: string,
   ): Promise<PagedResult<QrCode>> {
+    return QrService.advancedList({ keyword }, page, pageSize)
+  },
+
+  async advancedList(
+    query: StructuredQuery,
+    page: number = 1,
+    pageSize: number = 20,
+  ): Promise<PagedResult<QrCode>> {
     let items = await qrCodeRepository.getAll()
-    if (keyword) {
-      const kw = keyword.toLowerCase()
+
+    if (query.keyword) {
+      const kw = query.keyword.toLowerCase()
       items = items.filter(
         (q) =>
           q.name.toLowerCase().includes(kw) ||
@@ -32,6 +53,52 @@ export const QrService = {
           q.shortCode.toLowerCase().includes(kw),
       )
     }
+
+    if (query.type) {
+      items = items.filter((q) => q.type === query.type)
+    }
+
+    if (query.enabled !== undefined) {
+      items = items.filter((q) => q.enabled === query.enabled)
+    }
+
+    if (query.scanCountMin !== undefined) {
+      items = items.filter((q) => q.scanCount >= query.scanCountMin!)
+    }
+
+    if (query.scanCountMax !== undefined) {
+      items = items.filter((q) => q.scanCount <= query.scanCountMax!)
+    }
+
+    if (query.dateFrom) {
+      const from = new Date(query.dateFrom).getTime()
+      items = items.filter((q) => new Date(q.createdAt).getTime() >= from)
+    }
+
+    if (query.dateTo) {
+      const to = new Date(query.dateTo).getTime()
+      items = items.filter((q) => new Date(q.createdAt).getTime() < to)
+    }
+
+    if (query.sortBy) {
+      const order = query.sortOrder === 'asc' ? 1 : -1
+      items.sort((a, b) => {
+        let cmp = 0
+        switch (query.sortBy) {
+          case 'scanCount':
+            cmp = a.scanCount - b.scanCount
+            break
+          case 'createdAt':
+            cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            break
+          case 'name':
+            cmp = a.name.localeCompare(b.name, 'zh-CN')
+            break
+        }
+        return cmp * order
+      })
+    }
+
     const total = items.length
     const start = (page - 1) * pageSize
     const paged = items.slice(start, start + pageSize)

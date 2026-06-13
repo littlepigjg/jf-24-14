@@ -110,3 +110,36 @@ export interface ApiResponse<T> {
   error?: string
   message?: string
 }
+
+export interface NlpStructuredQuery {
+  keyword?: string
+  type?: 'static' | 'dynamic'
+  enabled?: boolean
+  scanCountMin?: number
+  scanCountMax?: number
+  dateFrom?: string
+  dateTo?: string
+  sortBy?: 'createdAt' | 'scanCount' | 'name'
+  sortOrder?: 'asc' | 'desc'
+}
+
+export interface NlpRecognizedCondition {
+  field: string
+  label: string
+  value: string
+  matched: string
+}
+
+export interface NlpParseResult {
+  query: NlpStructuredQuery
+  recognized: NlpRecognizedCondition[]
+  suggestions: string[]
+}
+
+export interface SmartSearchResult {
+  items: QrCode[]
+  total: number
+  page: number
+  pageSize: number
+  parseResult: NlpParseResult
+}
